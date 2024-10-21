@@ -49,36 +49,43 @@ contract MarketplaceContract is Ownable {
         address paymentToken
     ) external {
         bytes32 saleId = keccak256(abi.encodePacked(msg.sender, erc721Contract, assetsId));
-        console.logBytes32(saleId); // Correct method for logging bytes32
+        // console.logBytes32(saleId); // Correct method for logging bytes32
         sales[saleId] = Sale(msg.sender, erc721Contract , address(0), assetsId, 1, price, paymentToken);
-        console.log("sale ==> %s %s %s", 
-            sales[saleId].seller
-        );
+        // console.log("22 sale,seller ==> %s %s %s", 
+        //     sales[saleId].seller
+        // );
     }
 
     function buy(address seller,address erc721Contract,address erc1155Contract ,uint256 assetsId, uint256 quantity ) external payable {
         bytes32 saleId;
         if(erc1155Contract == address(0)){
             saleId = keccak256(abi.encodePacked(seller, erc721Contract, assetsId));
-            console.logBytes32(saleId); 
+            // console.logBytes32(saleId); 
         }
         else if(erc721Contract == address(0)){
             saleId = keccak256(abi.encodePacked(seller, erc1155Contract, assetsId));
-            console.logBytes32(saleId);
+            // console.logBytes32(saleId);
         }
         else{
             revert("invalid erc contract address");
         }
+        // console.logBytes32(saleId); // Correct method for logging bytes32
+        // console.log("33 sale.seller ==> %s %s %s", 
+        //     sales[saleId].seller
+        // );
         
         Sale storage sale = sales[saleId];
 
-        console.log("sale ==> %s %s %s", 
-        sales[saleId].seller
-        );
+          // console.log("44 here1 - %s",sale.erc721Contract);
+
+        // console.log("55 sale ==> %s %s %s", 
+        // sales[saleId].seller
+        // );
         // console.log(saleId);
         
         require(sale.seller != address(0), "Sale does not exist");
         require(sale.quantity >= quantity, "Not enough assets on sale");
+        sale.quantity -= quantity;
         uint256 totalPrice = sale.price * quantity;
 
         if (sale.paymentToken == address(0)) {
@@ -91,20 +98,20 @@ contract MarketplaceContract is Ownable {
             ERC20TokenContract(sale.paymentToken).transfer(sale.seller, totalPrice - fee);
         }
 
-        if (sale.quantity == quantity) {
-            delete sales[saleId];
-        } else {
-            sale.quantity -= quantity;
-        }
-
         if(erc1155Contract == address(0)){
-            ERC721AssetsContract(sale.erc721Contract).safeTransferFrom(sale.seller, msg.sender, sale.assetsId);
+          // console.log("66 here - %s",sale.erc721Contract);
+          ERC721AssetsContract(sale.erc721Contract).safeTransferFrom(sale.seller, msg.sender, sale.assetsId);
         }
         else if(erc721Contract == address(0)){
             ERC1155AssetsContract(sale.erc1155Contract).safeTransferFrom(sale.seller, msg.sender, sale.assetsId, quantity, "");
         }
         else{
             revert("invalid erc contract addresses");
+        }
+        if (sale.quantity == 0) {
+            delete sales[saleId];
+        } else {
+            sale.quantity -= quantity;
         }
     }
 
